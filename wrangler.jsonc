@@ -10,9 +10,6 @@
 	"secrets": {
 		"required": ["DATABASE_URL"]
 	},
-	"r2_buckets": [
-		{ "binding": "MOTORCYCLE_IMAGES", "bucket_name": "marcos-motores-images" }
-	],
 	"observability": {
 		"enabled": true
 	},

@@ -4,7 +4,7 @@ import { requireAdmin } from "../server/admin-auth.server";
 import { assertSameOrigin } from "../server/auth-cookie";
 import { requireCategoryDb } from "../server/categories-db.server";
 import { deleteMotorcycleWithImages } from "../server/motorcycle-images.server";
-import { getImageBucket } from "../server/r2.server";
+import { getOptionalImageBucket } from "../server/r2.server";
 import { getAdminMotorcycle, validMotorcycleId } from "../server/motorcycles-admin.server";
 
 export function meta() { return [{ title: "Excluir motocicleta | Marcos Motores" }, { name: "robots", content: "noindex,nofollow" }]; }
@@ -24,7 +24,14 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (!validMotorcycleId(params.id)) throw new Response("Motocicleta não encontrada.", { status: 404 });
   const form = await request.formData();
   if (form.get("confirm") !== "delete") return data({ error: "Confirme a exclusão." }, { status: 400 });
-  const pending = await deleteMotorcycleWithImages(requireCategoryDb(), getImageBucket(), params.id);
+  const db = requireCategoryDb();
+  const motorcycle = await getAdminMotorcycle(db, params.id);
+  if (!motorcycle) throw new Response("Motocicleta não encontrada.", { status: 404 });
+  const bucket = getOptionalImageBucket();
+  if (!bucket && motorcycle.images.length > 0) return data({ error: "Não é possível remover fotos sem o armazenamento configurado." }, { status: 503 });
+  let pending = 0;
+  if (bucket) pending = await deleteMotorcycleWithImages(db, bucket, params.id);
+  else await db.query("SELECT delete_motorcycle($1::uuid)", [params.id]);
   throw redirect(`/admin/motos?notice=deleted${pending ? "&pending=1" : ""}`);
 }
 

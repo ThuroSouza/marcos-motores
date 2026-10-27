@@ -8,7 +8,7 @@ import { requireCategoryDb } from "../server/categories-db.server";
 import { listAdminCategories } from "../server/categories.server";
 import { moveImage, removeImage, setCoverImage, uploadMotorcycleImage } from "../server/motorcycle-images.server";
 import { validateImage } from "../server/image-validation";
-import { getImageBucket } from "../server/r2.server";
+import { getImageBucket, getOptionalImageBucket } from "../server/r2.server";
 import { getAdminMotorcycle, MotorcycleError, motorcycleDraftFromForm, parseMotorcycleForm, saveMotorcycle, validMotorcycleId, type MotorcycleDraft } from "../server/motorcycles-admin.server";
 
 export function meta() { return [{ title: "Editar motocicleta | Marcos Motores" }, { name: "robots", content: "noindex,nofollow" }]; }
@@ -22,7 +22,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   if (!motorcycle) throw new Response("Motocicleta não encontrada.", { status: 404 });
   const notice = new URL(request.url).searchParams.get("notice");
   const message = notice === "created" ? "Rascunho salvo. Adicione as fotos antes de publicar." : notice === "updated" ? "Alterações salvas." : notice === "uploaded" ? "Fotos enviadas." : notice === "cover" ? "Foto de capa atualizada." : notice === "moved" ? "Ordem das fotos atualizada." : notice === "removed" ? "Foto removida." : notice === "cleanupPending" ? "Foto removida do anúncio. A limpeza do arquivo será tentada novamente." : null;
-  return data({ motorcycle, categories, message }, { headers: { "Cache-Control": "private, no-store" } });
+  return data({ motorcycle, categories, message: notice === "created" && !getOptionalImageBucket() ? "Rascunho salvo. Fotos e publicação aguardam um armazenamento de imagens." : message, photosAvailable: Boolean(getOptionalImageBucket()) }, { headers: { "Cache-Control": "private, no-store" } });
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -63,6 +63,6 @@ export async function action({ request, params }: Route.ActionArgs) {
 }
 
 export default function EditMotorcycle({ loaderData, actionData }: Route.ComponentProps) {
-  const { motorcycle, categories, message } = loaderData;
-  return <div className="mx-auto max-w-5xl px-5 py-9 sm:px-8 sm:py-12 lg:px-12"><Link to="/admin/motos" className="text-xs font-bold uppercase tracking-widest text-gold hover:underline">← Voltar às motocicletas</Link><p className="eyebrow mt-9">ESTOQUE / EDIÇÃO</p><h1 className="font-display mt-3 text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">{motorcycle.draft.brand} {motorcycle.draft.model}</h1><p className="mt-3 text-sm text-muted">Gerencie informações, publicação e fotografias do anúncio.</p>{message && <p role="status" className="mt-6 border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-gold">{message}</p>}{actionData?.error && actionData.draft === null && <p role="alert" className="mt-6 border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200">{actionData.error}</p>}<MotorcycleForm initial={actionData?.draft ?? motorcycle.draft} categories={categories} error={actionData?.draft ? actionData.error : undefined} submitLabel="Salvar alterações" /><PhotoManager images={motorcycle.images} /><div className="mt-8 flex flex-wrap gap-4 text-sm"><Link to={`/admin/motos/${motorcycle.id}`} className="text-gold hover:underline">Visualizar anúncio no painel</Link><Link to={`/admin/motos/${motorcycle.id}/excluir`} className="text-red-300 hover:underline">Excluir motocicleta</Link></div></div>;
+  const { motorcycle, categories, message, photosAvailable } = loaderData;
+  return <div className="mx-auto max-w-5xl px-5 py-9 sm:px-8 sm:py-12 lg:px-12"><Link to="/admin/motos" className="text-xs font-bold uppercase tracking-widest text-gold hover:underline">← Voltar às motocicletas</Link><p className="eyebrow mt-9">ESTOQUE / EDIÇÃO</p><h1 className="font-display mt-3 text-3xl font-bold tracking-[-0.04em] text-white sm:text-4xl">{motorcycle.draft.brand} {motorcycle.draft.model}</h1><p className="mt-3 text-sm text-muted">{photosAvailable ? "Gerencie informações, publicação e fotografias do anúncio." : "Gerencie os dados do rascunho. Fotos e publicação estão indisponíveis."}</p>{message && <p role="status" className="mt-6 border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-gold">{message}</p>}{actionData?.error && actionData.draft === null && <p role="alert" className="mt-6 border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200">{actionData.error}</p>}<MotorcycleForm initial={actionData?.draft ?? motorcycle.draft} categories={categories} error={actionData?.draft ? actionData.error : undefined} submitLabel="Salvar alterações" photosAvailable={photosAvailable} />{photosAvailable && <PhotoManager images={motorcycle.images} />}<div className="mt-8 flex flex-wrap gap-4 text-sm"><Link to={`/admin/motos/${motorcycle.id}`} className="text-gold hover:underline">Visualizar anúncio no painel</Link><Link to={`/admin/motos/${motorcycle.id}/excluir`} className="text-red-300 hover:underline">Excluir motocicleta</Link></div></div>;
 }
