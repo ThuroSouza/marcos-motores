@@ -1,0 +1,4 @@
+# Copie para .dev.vars e substitua pelo valor real do Neon. Não envie este segredo ao Git.
+DATABASE_URL=""
+# Opcional: URL de conexão direta para o executor de migrations (não é carregada pelo Worker).
+MIGRATION_DATABASE_URL=""
