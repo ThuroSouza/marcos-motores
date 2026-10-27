@@ -25,9 +25,11 @@ O projeto usa React Router no Cloudflare Worker, com assets estáticos e Neon. O
 
 ### Publicação automática pelo GitHub
 
-O repositório é `ThuroSouza/marcos-motores`, branch `main`. Para conectar o Worker já existente, em **Workers & Pages → marcos-motores → Settings → Builds**, escolha **Connect** e autorize o repositório no GitHub. Configure a branch de produção como `main`, o comando de build como `npm run build` e o comando de deploy como `npm run deploy:ci` (equivale a `wrangler deploy`). O nome do Worker no painel deve permanecer `marcos-motores`, igual ao `wrangler.jsonc`.
+O repositório é `ThuroSouza/marcos-motores`, branch `main`. O painel de **Workers Builds** ofereceu somente a criação automática de um token com permissões amplas de edição para vários serviços da conta. Por isso, a automação usa [GitHub Actions](../.github/workflows/deploy.yml) e um token Cloudflare limitado ao Worker `marcos-motores`.
 
-O `DATABASE_URL` já está configurado como segredo do Worker publicado. O build no Cloudflare não deve usar `.dev.vars`, que existe apenas nesta máquina e é ignorado pelo Git. Cada push na branch de produção atualizará o Worker; `npm run db:migrate` continua uma operação separada para mudanças de esquema no Neon. Dados cadastrados no painel entram no Neon imediatamente, sem commit ou deploy.
+Em **Workers & Pages → marcos-motores → Settings → Builds → Create token**, o painel oferece um token com escopo `marcos-motores` e permissão `Individual Workers Editor`. Guarde o valor gerado como segredo `CLOUDFLARE_API_TOKEN` em **GitHub → ThuroSouza/marcos-motores → Settings → Secrets and variables → Actions**. O workflow já inclui o ID público da conta Cloudflare. Não coloque o token em `.dev.vars`, código, commits ou mensagens.
+
+O `DATABASE_URL` já está configurado como segredo do Worker publicado. O workflow não usa `.dev.vars`, que existe apenas nesta máquina e é ignorado pelo Git. Cada push na branch `main` validará tipos e lint, compilará e atualizará o Worker. `npm run db:migrate` continua uma operação separada para mudanças de esquema no Neon. Dados cadastrados no painel entram no Neon imediatamente, sem commit ou deploy.
 
 Após cada publicação, abrir a URL retornada pelo Wrangler e verificar `/`, `/motos`, `/api/public/categories` e `/admin/login`. Sem armazenamento de imagens, o painel permite salvar categorias e motos como rascunho, mas não oferece upload nem publicação de anúncios. Por isso, o catálogo público permanecerá vazio até a loja escolher uma solução para as fotos. A imagem do banner é ilustrativa e estática.
 
